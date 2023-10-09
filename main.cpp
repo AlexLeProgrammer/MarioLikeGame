@@ -1,5 +1,6 @@
 #include <SDL.h>
 #include <Windows.h>
+#include <vector>
 #include <iostream>
 
 // Constantes
@@ -26,9 +27,6 @@ const double PLAYER_DEFAULT_SPEED = 5.0;
 
 // Saut
 const double PLAYER_JUMP_FORCE = 10.0;
-
-// Triggers
-const double TRIGGER_SIZE = 80.0;
 
 // Variables globales
 
@@ -66,9 +64,10 @@ bool rightPressed = false;
 bool haveSpaceReleased = false;
 
 // Murs [world][level][wall][wall properties]
-double walls[1][1][27][4] = {
+std::vector<std::vector<std::vector<std::vector<double>>>> walls {
 	{
 		{
+			// Niveau 1
 			/*{x1, y1, x2, y2}*/
 			{0, 250, 75, 300},
 			{225, 250, 275, 275},
@@ -97,16 +96,29 @@ double walls[1][1][27][4] = {
 			{3750, 250, 4050, 300},
 			{3875, 200, 3925, 250},
 			{4000, 200, 4050, 250}
+		},
+		{
+			// Niveau 2
+			{0, 250, 675, 425},
+			{0, -50, 675, 0},
+			{625, 0, 675, 75},
+			{575, 75, 675, 125},
+			{525, 125, 675, 175},
+			{475, 175, 675, 225},
+			{425, 225, 675, 250}
 		}
 	}
 };
 
 // Triggers [world][level][wall][trigger properties]
-double triggers[1][1][1][3] = {
+std::vector<std::vector<std::vector<std::vector<double>>>> triggers = {
 	{
 		{
-			/*{x, y, type}*/
-			{100.0, 0.0, 1.0}
+			/*{x, y, w, h, type}*/
+			{4000, 150, 50, 50, 100} // Fin du niveau
+		},
+		{
+			{4000, 150, 50, 50, 100} // Fin du niveau
 		}
 	}
 };
@@ -186,14 +198,25 @@ int main(int argc, char* argv[]) {
 		#pragma region CALCULES-PHYSIQUES
 
 		// Triggers
-		for (int i = 0; i < static_cast<int>(sizeof(triggers[world][level]) / sizeof(double[3])); i++) {
+		for (int i = 0; i < triggers[world][level].size(); i++) {
 			// Si on entre en collision avec un trigger
-			if (playerX >= triggers[world][level][i][0] - PLAYER_WIDTH && playerX <= triggers[world][level][i][0] + TRIGGER_SIZE &&
-				playerY >= triggers[world][level][i][1] - PLAYER_HEIGHT && playerY <= triggers[world][level][i][1] + TRIGGER_SIZE) {
+			if (playerX >= triggers[world][level][i][0] - PLAYER_WIDTH && playerX <= triggers[world][level][i][0] + triggers[world][level][i][2] &&
+				playerY >= triggers[world][level][i][1] - PLAYER_HEIGHT && playerY <= triggers[world][level][i][1] + triggers[world][level][i][3]) {
 				// if type < 5 par exemple -> bonus
 				// Liste des bonus :
-				// 0 : Double jump
-				activeBonus = static_cast<int>(triggers[world][level][i][2]);
+				// 1 : Double jump
+				// Autres triggers
+				// 100 : fin de niveaux
+				if (triggers[world][level][i][4] == 100) {
+					level++;
+					i = 0;
+					playerX = 0.0;
+					playerY = 0.0;
+					playerYVelocity = 0.0;
+				}
+				else {
+					activeBonus = static_cast<int>(triggers[world][level][i][2]);
+				}
 			}
 		}
 
@@ -201,7 +224,7 @@ int main(int argc, char* argv[]) {
 		double upDistance = playerYVelocity;
 		double playerWallDistance = PLAYER_DEFAULT_SPEED;
 		playerIsGrounded = false;
-		for (int i = 0; i < static_cast<int>(sizeof(walls[world][level]) / sizeof(double[4])); i++) {
+		for (int i = 0; i < walls[world][level].size(); i++) {
 			#pragma region GRAVITY
 
 			// Vérifie que le mur soit en dessous du joueur
@@ -306,18 +329,18 @@ int main(int argc, char* argv[]) {
 
 		// Dessine les trigger
 		SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
-		for (int i = 0; i < static_cast<int>(sizeof(triggers[world][level]) / sizeof(double[3])); i++) {
+		for (int i = 0; i < triggers[world][level].size(); i++) {
 			SDL_Rect Actualtrigger;
 			Actualtrigger.x = static_cast<int>(triggers[world][level][i][0] - cameraX);
 			Actualtrigger.y = static_cast<int>(triggers[world][level][i][1] - cameraY);
-			Actualtrigger.w = static_cast<int>(TRIGGER_SIZE);
-			Actualtrigger.h = static_cast<int>(TRIGGER_SIZE);
+			Actualtrigger.w = static_cast<int>(triggers[world][level][i][2]);
+			Actualtrigger.h = static_cast<int>(triggers[world][level][i][3]);
 			SDL_RenderDrawRect(renderer, &Actualtrigger);
 		}
 
 		// Dessine les murs
 		SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-		for (int i = 0; i < static_cast<int>(sizeof(walls[world][level]) / sizeof(double[4])); i++) {
+		for (int i = 0; i < walls[world][level].size(); i++) {
 			SDL_Rect wall;
 			wall.x = static_cast<int>(walls[world][level][i][0] - cameraX);
 			wall.y = static_cast<int>(walls[world][level][i][1] - cameraY);
