@@ -1,0 +1,52 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+body {
+    display: flex;
+    overflow: hidden;
+}
+
+#menu-background {
+    width: 100vw;
+    height: 100vh;
+    background-color: transparent;
+    backdrop-filter: blur(5px);
+    position: absolute;
+}
+
+.menu {
+    background-color: white;
+    margin-left: 50vw;
+    margin-top: 50vh;
+    transform: translate(-50%, -50%);
+    width: 50vw;
+    height: 75vh;
+    border-radius: 20px;
+    box-shadow: 0 0 50px;
+}
+
+h1 {
+    padding-top: 20px;
+    text-align: center;
+    font-size: 3rem;
+}
+
+button {
+    border: none;
+    background-color: #265BB9;
+    color: white;
+    font-weight: bold;
+    border-radius: 5px;
+    padding: 5px 50px;
+    font-size: 1rem;
+    margin: 10px 0 10px 50%;
+    transform: translateX(-50%);
+    cursor: pointer;
+}
+
+canvas {
+    background: #265BB9;
+}

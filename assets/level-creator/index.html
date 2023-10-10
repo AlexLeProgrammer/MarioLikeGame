@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+
+        <title>Level creator</title>
+
+        <!--style-->
+        <link rel="stylesheet" href="styles.css">
+    </head>
+    <body oncontextmenu="return false;" id="body">
+        <canvas width="675" height="675" id="game" style="display: block;"></canvas>
+        <div id="menu-background" style="display: block;">
+            <div class="menu">
+                <h1>Menu</h1>
+                <button onclick="copyCode()">Copier le code</button>
+                <button onclick="deleteLevel()">Supprimer le niveau</button>
+                <button onclick="switchDebugMode()" id="debug-mode">Debug mode : off</button>
+            </div>
+        </div>
+        <script src = "script.js"></script>
+    </body>
+</html>
