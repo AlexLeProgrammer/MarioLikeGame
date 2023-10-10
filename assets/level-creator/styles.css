@@ -50,3 +50,9 @@ button {
 canvas {
     background: #265BB9;
 }
+
+.menu div {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}

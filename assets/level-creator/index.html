@@ -10,14 +10,28 @@
     </head>
     <body oncontextmenu="return false;" id="body">
         <canvas width="675" height="675" id="game" style="display: block;"></canvas>
+
         <div id="menu-background" style="display: block;">
             <div class="menu">
                 <h1>Menu</h1>
                 <button onclick="copyCode()">Copier le code</button>
+                <button onclick="exportMap()">Exporter la map</button>
                 <button onclick="deleteLevel()">Supprimer le niveau</button>
                 <button onclick="switchDebugMode()" id="debug-mode">Debug mode : off</button>
+
+                <div>
+                    Appuyez sur espace pour changer le type de bloc.<br>
+                    Types en fonction de la couleur du carré séléctionné :
+                    <ul>
+                        <li>Noir : Mur classique</li>
+                        <li>Blanc : zone d'arrivé</li>
+                    </ul>
+                    Appuyez sur +/- pour monter ou descendre.<br>
+                    Utilisez la molette de la souris pour vous déplacer latéralement.
+                </div>
             </div>
         </div>
-        <script src = "script.js"></script>
+
+        <script src="script.js"></script>
     </body>
 </html>

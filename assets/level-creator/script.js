@@ -1,63 +1,65 @@
 // Créateur de monde
-var canvas = document.getElementById('game');
-var context = canvas.getContext('2d');
+let canvas = document.getElementById('game');
+let context = canvas.getContext('2d');
 
 //#region CONSTANTES
 
 const BLOCKSIZE = 25;
-/*const SPIKE = new Image();
-SPIKE.src = "./spike.png";
-const SPIKE_U = new Image();
-SPIKE_U.src = "./spikeupsidedown.png";*/
 
 //#endregion
 
-//#region VARIABLES
-var mouseScreenPosX = 0;
-var mouseScreenPosY = 0;
+//#region VAR   IABLES
+let mouseScreenPosX = 0;
+let mouseScreenPosY = 0;
 
-var blockX = 0;
-var blockY = 0;
+let blockX = 0;
+let blockY = 0;
 
-var offsetX = 0;
-var offsetY = 0;
+let offsetX = 0;
+let offsetY = 0;
 
-var map = {
-    blocs: [],
-    spikes: []
-}
+let map = {
+    blocks: [],
+    ends: []
+};
 
-var bigBlocs = [];
-var bigLineBlocs = [];
+let blockType = 0; // 0 : mur, 1 : arrivé
 
-var myBloc = 0;
+let bigBlocs = [];
+let bigLineBlocs = [];
 
-var reset = false;
+let bigEnds = [];
+let bigLineEnds = [];
 
-var isPlacing = false;
-var isBreaking = false;
+let reset = false;
 
-var menuOpened = false;
-var debugMode = false;
+let isPlacing = false;
+let isBreaking = false;
+
+let menuOpened = false;
+let debugMode = false;
 
 let mapName = "map0";
 
 //#endregion
 
 //#region FONCTIONS
-function isABloc(x, y, checkSpikes = false) {
-    var result = false;
-    for (var i = 0; i < map.blocs.length; i++) {
-        if (map.blocs[i][0] === x && map.blocs[i][1] === y) {
-            result = true;
+function isABloc(x, y) {
+    // Bloc
+    for (let i = 0; i < map.blocks.length; i++) {
+        if (map.blocks[i][0] === x && map.blocks[i][1] === y) {
+            return true;
         }
     }
-    for (var i = 0; i < map.spikes.length; i++) {
-        if (map.spikes[i][0] === x && map.spikes[i][1] === y) {
-            result = checkSpikes;
+
+    // Fin de niveau
+    for (let i = 0; i < map.ends.length; i++) {
+        if (map.ends[i][0] === x && map.ends[i][1] === y) {
+            return true;
         }
     }
-    return result;
+
+    return false;
 }
 
 const copyCode = async () => {
@@ -68,23 +70,28 @@ const copyCode = async () => {
 }
 
 function calculateResult() {
-    var tab = "\t";
-    // blocs variable
-    var result = "";
-    for (var i = 0; i < bigBlocs.length; i++) {
+    // blocs variables
+    let result = "";
+
+    // Blocs
+    for (let i = 0; i < bigBlocs.length; i++) {
         result += "{" + bigBlocs[i][0] + ", " + bigBlocs[i][1] + ", " +
         (bigBlocs[i][0] + bigBlocs[i][2]) + ", " + (bigBlocs[i][1] + bigBlocs[i][3])
         + "}" + (i < bigBlocs.length - 1 ? "," : "") + "\n";
     }
-    /* map.spikes variable
-    result += "float spikes[" + map.spikes.length + "][2] = {";
-    for (var i = 0; i < map.spikes.length; i++) {
-        result += "{" + ((map.spikes[i][0] / (BLOCKSIZE / 10)) + 5) + ", DISPLAY_HEIGHT - " + ((BLOCKSIZE * offsetY - map.spikes[i][1]) / (BLOCKSIZE / 10)) + "}" + (i < map.spikes.length - 1 ? "," : "");
+
+    // Fin de niveau
+    if (bigEnds.length > 0) {
+        result += "---\n";
     }
-    result += "};";*/
-    // remove the "DISPLAY_HEIGHT - 0";
+
+    for (let i = 0; i < bigEnds.length; i++) {
+        result += "{" + bigEnds[i][0] + ", " + bigEnds[i][1] + ", " +
+        bigEnds[i][2] + ", " + bigEnds[i][3] + ", 100}" + (i < bigEnds.length - 1 ? "," : "") + "\n";
+    }
+
     result = result.replaceAll(" - 0", "");
-    console.log(bigBlocs.length + " walls");
+    
     return result;
 }
 
@@ -94,12 +101,10 @@ function switchDebugMode() {
 }
 
 function deleteLevel() {
-    map.blocs = [];
-    map.spikes = [];
+    map.blocks = [];
+    map.ends = [];
 }
-//#endregion
 
-// Load
 function loadMap(name) {
     document.querySelector("title").innerHTML = name;
     mapName = name;
@@ -107,6 +112,18 @@ function loadMap(name) {
         map = JSON.parse(localStorage.getItem(mapName));
     }
 }
+
+function exportMap() {
+    console.log(JSON.stringify(map));
+}
+
+function importMap(mapString) {
+    map = JSON.parse(mapString);
+}
+
+//#endregion
+
+// Load
 loadMap(mapName);
 
 function loop() {
@@ -121,27 +138,27 @@ function loop() {
     document.getElementById("menu-background").style.display = menuOpened ? "block" : "none";
     //#endregion
     
-    //#region CALCULER LES GROS BLOCS
+    //#region CALCULER LES GROS BLOCS MUR
     bigBlocs = [];
     bigLineBlocs = [];
     // creer les lignes
-    for (var i = 0; i < map.blocs.length; i++) {
-        if (!isABloc(map.blocs[i][0] - BLOCKSIZE, map.blocs[i][1])) {
-            var endFound = false;
-            var lenght = 0;
+    for (let i = 0; i < map.blocks.length; i++) {
+        if (!isABloc(map.blocks[i][0] - BLOCKSIZE, map.blocks[i][1])) {
+            let endFound = false;
+            let lenght = 0;
             while (!endFound) {
                 lenght ++;
-                if (!isABloc(map.blocs[i][0] + (BLOCKSIZE * lenght), map.blocs[i][1])) {
+                if (!isABloc(map.blocks[i][0] + (BLOCKSIZE * lenght), map.blocks[i][1])) {
                     endFound = true;
                 }
             }
-            bigLineBlocs.push([map.blocs[i][0], map.blocs[i][1], BLOCKSIZE * lenght, BLOCKSIZE]);
+            bigLineBlocs.push([map.blocks[i][0], map.blocks[i][1], BLOCKSIZE * lenght, BLOCKSIZE]);
         }
     }
     // supprimer les lignes innutiles
-    for (var i = 0; i < bigLineBlocs.length; i++) {
-        var isOnTop = true;
-        for (var j = 0; j < bigLineBlocs.length; j ++) {
+    for (let i = 0; i < bigLineBlocs.length; i++) {
+        let isOnTop = true;
+        for (let j = 0; j < bigLineBlocs.length; j ++) {
             if (bigLineBlocs[j][2] === bigLineBlocs[i][2] && bigLineBlocs[j][1] + BLOCKSIZE === bigLineBlocs[i][1] && bigLineBlocs[j][0] === bigLineBlocs[i][0]) {
                 isOnTop = false;
             }
@@ -151,12 +168,12 @@ function loop() {
         }
     }
     // creer les gros blocs
-    for (var i = 0; i < bigBlocs.length; i++) {
-        var endFound = false;
-        var lenght = 0;
+    for (let i = 0; i < bigBlocs.length; i++) {
+        let endFound = false;
+        let lenght = 0;
         while (!endFound) {
             lenght ++;
-            for (var j = bigBlocs[i][0]; j < bigBlocs[i][0] + bigBlocs[i][2]; j += BLOCKSIZE) {
+            for (let j = bigBlocs[i][0]; j < bigBlocs[i][0] + bigBlocs[i][2]; j += BLOCKSIZE) {
                 if (!isABloc(j, bigBlocs[i][1] + lenght*BLOCKSIZE)) {
                     endFound = true;
                 }
@@ -169,53 +186,108 @@ function loop() {
     }
     //#endregion
 
+    //#region CALCULER LES GROS BLOCS FIN DE NIVEAU
+    bigEnds = [];
+    bigLineEnds = [];
+    // creer les lignes
+    for (let i = 0; i < map.ends.length; i++) {
+        if (!isABloc(map.ends[i][0] - BLOCKSIZE, map.ends[i][1])) {
+            let endFound = false;
+            let lenght = 0;
+            while (!endFound) {
+                lenght ++;
+                if (!isABloc(map.ends[i][0] + (BLOCKSIZE * lenght), map.ends[i][1])) {
+                    endFound = true;
+                }
+            }
+            bigLineEnds.push([map.ends[i][0], map.ends[i][1], BLOCKSIZE * lenght, BLOCKSIZE]);
+        }
+    }
+    // supprimer les lignes innutiles
+    for (let i = 0; i < bigLineEnds.length; i++) {
+        let isOnTop = true;
+        for (let j = 0; j < bigLineEnds.length; j ++) {
+            if (bigLineEnds[j][2] === bigLineEnds[i][2] && bigLineEnds[j][1] + BLOCKSIZE === bigLineEnds[i][1] && bigLineEnds[j][0] === bigLineEnds[i][0]) {
+                isOnTop = false;
+            }
+        }
+        if (isOnTop) {
+            bigEnds.push(bigLineEnds[i]);
+        }
+    }
+    // creer les gros blocs
+    for (let i = 0; i < bigEnds.length; i++) {
+        let endFound = false;
+        let lenght = 0;
+        while (!endFound) {
+            lenght ++;
+            for (let j = bigEnds[i][0]; j < bigEnds[i][0] + bigEnds[i][2]; j += BLOCKSIZE) {
+                if (!isABloc(j, bigEnds[i][1] + lenght*BLOCKSIZE)) {
+                    endFound = true;
+                }
+            }
+            if (isABloc(bigEnds[i][0] - BLOCKSIZE, bigEnds[i][1] + (lenght)*BLOCKSIZE) || isABloc(bigEnds[i][0] + bigEnds[i][2], bigEnds[i][1] + lenght*BLOCKSIZE)) {
+                endFound = true
+            }
+        }
+        bigEnds[i][3] = BLOCKSIZE * lenght;
+    }
+    //#endregion
+
     //#region AFFICHAGE
     // grid
     context.fillStyle = "#133F8E";
-    for (var x = 0; x < canvas.width; x+=BLOCKSIZE) {
+    for (let x = 0; x < canvas.width; x+=BLOCKSIZE) {
         context.fillRect(x, 0, 1, canvas.height);
     }
-    for (var y = 0; y < canvas.height; y+=BLOCKSIZE) {
+    for (let y = 0; y < canvas.height; y+=BLOCKSIZE) {
         context.fillRect(0, y, canvas.width, 1);
     }
+
     // x0 line
-    context.fillStyle = "yellow"
+    context.fillStyle = "red";
     context.fillRect(offsetX * BLOCKSIZE, 0, 1, canvas.height);
+
     // y0 line
+    context.fillStyle = "yellow";
     context.fillRect(0, offsetY, canvas.width, 1);
+
     // black square
-    context.strokeStyle = "black";
+    if (blockType === 0) {
+        context.strokeStyle = "black";
+    } else {
+        context.strokeStyle = "white";
+    }
+
     context.lineWidth = 2;
     context.strokeRect(blockX, blockY, BLOCKSIZE, BLOCKSIZE);
-    // blocs
+
+    // Dessine les blocs
     context.fillStyle = "black";
-    for (var i = 0; i < map.blocs.length; i++) {
-        context.fillRect(map.blocs[i][0] + offsetX * BLOCKSIZE, map.blocs[i][1] + offsetY, BLOCKSIZE, BLOCKSIZE);
+    for (let i = 0; i < map.blocks.length; i++) {
+        context.fillRect(map.blocks[i][0] + offsetX * BLOCKSIZE, map.blocks[i][1] + offsetY, BLOCKSIZE, BLOCKSIZE);
     }
-    // spikes
-    for (var i = 0; i < map.spikes.length; i++) {
-        if (isABloc(map.spikes[i][0], map.spikes[i][1] - BLOCKSIZE)) {
-            context.drawImage(SPIKE_U, map.spikes[i][0] + offsetX * BLOCKSIZE, map.spikes[i][1], BLOCKSIZE, BLOCKSIZE);
-        } else {
-            context.drawImage(SPIKE, map.spikes[i][0] + offsetX * BLOCKSIZE, map.spikes[i][1], BLOCKSIZE, BLOCKSIZE);
-        }
+
+    // Dessine les fins de niveau
+    context.fillStyle = "white";
+    for (let i = 0; i < map.ends.length; i++) {
+        context.fillRect(map.ends[i][0] + offsetX * BLOCKSIZE, map.ends[i][1] + offsetY, BLOCKSIZE, BLOCKSIZE);
     }
+
     // big blocs
     if (debugMode) {
         context.fillStyle = "red";
-        for (var i = 0; i < bigBlocs.length; i++) {
+        // Blocs
+        for (let i = 0; i < bigBlocs.length; i++) {
             context.fillRect(bigBlocs[i][0] + offsetX * BLOCKSIZE + 5, bigBlocs[i][1] + offsetY + 5, bigBlocs[i][2] - 10, bigBlocs[i][3] - 10);
         }
+
+        // Fin de niveau
+        for (let i = 0; i < bigEnds.length; i++) {
+            context.fillRect(bigEnds[i][0] + offsetX * BLOCKSIZE + 5, bigEnds[i][1] + offsetY + 5, bigEnds[i][2] - 10, bigEnds[i][3] - 10);
+        }
     }
-    // myBloc
-    context.fillStyle = "white";
-    context.fillRect(BLOCKSIZE / 2, BLOCKSIZE / 2, BLOCKSIZE * 2, BLOCKSIZE * 2);
-    context.fillStyle = "black";
-    if (myBloc === 0) {
-        context.fillRect(BLOCKSIZE, BLOCKSIZE, BLOCKSIZE, BLOCKSIZE);
-    } else {
-        context.drawImage(SPIKE, BLOCKSIZE, BLOCKSIZE, BLOCKSIZE, BLOCKSIZE);
-    }
+
     // ground
     context.fillStyle = "#122c5a";
     context.fillRect(0, BLOCKSIZE * 25, canvas.width, canvas.height - BLOCKSIZE * 25);
@@ -224,26 +296,29 @@ function loop() {
     //#region POSER/CASSER
     //detecte si on clique
     if (isPlacing && !isABloc(blockX-offsetX*BLOCKSIZE, blockY-offsetY, true)) {
-        if (myBloc === 0) {
-            map.blocs.push([blockX-offsetX*BLOCKSIZE, blockY-offsetY]);
+        if (blockType === 0) {
+            // Bloc
+            map.blocks.push([blockX-offsetX*BLOCKSIZE, blockY-offsetY]);
         } else {
-            map.spikes.push([blockX-offsetX*BLOCKSIZE, blockY-offsetY]);
+            // Fin de niveau
+            map.ends.push([blockX-offsetX*BLOCKSIZE, blockY-offsetY]);
         }
-        setTimeout(calculateResult, 100);
     }
     //detecte si on clique droit
     if (isBreaking) {
-        for (var i = 0; i < map.blocs.length; i++) {
-            if (map.blocs[i][0] + offsetX * BLOCKSIZE === blockX && map.blocs[i][1] + offsetY === blockY) {
-                map.blocs.splice(i, 1);
+        // Bloc
+        for (let i = 0; i < map.blocks.length; i++) {
+            if (map.blocks[i][0] + offsetX * BLOCKSIZE === blockX && map.blocks[i][1] + offsetY === blockY) {
+                map.blocks.splice(i, 1);
             }
         }
-        for (var i = 0; i < map.spikes.length; i++) {
-            if (map.spikes[i][0] + offsetX * BLOCKSIZE === blockX && map.spikes[i][1] + offsetY === blockY) {
-                map.spikes.splice(i, 1);
+
+        // Fin de niveau
+        for (let i = 0; i < map.ends.length; i++) {
+            if (map.ends[i][0] + offsetX * BLOCKSIZE === blockX && map.ends[i][1] + offsetY === blockY) {
+                map.ends.splice(i, 1);
             }
         }
-        setTimeout(calculateResult, 100);
     }
     //#endregion
 
@@ -287,17 +362,25 @@ document.addEventListener('mouseup', function(e) {
     }
 });
 document.addEventListener('keydown', function(e) {
+    // Ouvre le menu
     if (e.which === 27) {
         menuOpened = !menuOpened;
     }
+
+    // Change de type de bloc
     if (e.which === 32) {
-        myBloc ++;
-        myBloc %= 2;
+        if (blockType === 0) {
+            blockType = 1;
+        } else {
+            blockType = 0;
+        }
     }
+
     // +
     if (e.which === 107) {
         offsetY += BLOCKSIZE;
     }
+
     // -
     if (e.which === 109) {
         offsetY -= BLOCKSIZE;
