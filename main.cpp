@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <SDL_image.h>
 #include <Windows.h>
 #include <vector>
 #include <iostream>
@@ -18,7 +19,12 @@ const double GRAVITY_FORCE = 0.5;
 
 // Joueur
 const double PLAYER_WIDTH = 50.0;
-const double PLAYER_HEIGHT = 50.0;
+const double PLAYER_HEIGHT = 50.0 / 13.0 * 18.0;
+
+const int TIME_PLAYER_CAN_JUMP_AFTER_LIVING_PLATEFORM = 5;
+
+const double PLAYER_ACCELERATION = 0.3;
+const double PLAYER_DECELERATION = 0.5;
 
 // Vitesse
 
@@ -46,8 +52,11 @@ int level = 0;
 double playerX = 0.0;
 double playerY = 0.0;
 
+double playerSpeed = 0.0;
+int playerDirection = 0; // 0 = aucun mouvement, 1 = gauche, 2 = right
 double playerYVelocity = 0.0;
 
+int playerCanJumpTimeRemaining = TIME_PLAYER_CAN_JUMP_AFTER_LIVING_PLATEFORM;
 bool playerIsGrounded = false;
 bool canDoubleJump = false;
 
@@ -166,9 +175,11 @@ int main(int argc, char* argv[]) {
 
 		// Saut (espace)
 		if (GetKeyState(VK_SPACE) & 0x8000) {
-			if (playerIsGrounded || (canDoubleJump && haveSpaceReleased)) {
-				if (!playerIsGrounded) {
+			if (playerCanJumpTimeRemaining > 0 || (canDoubleJump && haveSpaceReleased)) {
+				if (playerCanJumpTimeRemaining <= 0) {
 					canDoubleJump = false;
+				} else {
+					playerCanJumpTimeRemaining = 0;
 				}
 
 				haveSpaceReleased = false;
@@ -181,6 +192,7 @@ int main(int argc, char* argv[]) {
 		// Déplacement à gauche (A)
 		if (GetKeyState('A') & 0x8000 && playerX > 0) {
 			leftPressed = true;
+			playerDirection = 1;
 		} else {
 			leftPressed = false;
 		}
@@ -188,9 +200,14 @@ int main(int argc, char* argv[]) {
 		// Déplacement à droite (D)
 		if (GetKeyState('D') & 0x8000) {
 			rightPressed = true;
-		}
-		else {
+			playerDirection = 2;
+		} else {
 			rightPressed = false;
+		}
+
+		// Si on appuie sur la gauche et la droite : pas de direction
+		if (leftPressed && rightPressed) {
+			playerDirection = 0;
 		}
 
 		#pragma endregion
@@ -200,8 +217,8 @@ int main(int argc, char* argv[]) {
 		// Triggers
 		for (int i = 0; i < triggers[world][level].size(); i++) {
 			// Si on entre en collision avec un trigger
-			if (playerX >= triggers[world][level][i][0] - PLAYER_WIDTH && playerX <= triggers[world][level][i][0] + triggers[world][level][i][2] &&
-				playerY >= triggers[world][level][i][1] - PLAYER_HEIGHT && playerY <= triggers[world][level][i][1] + triggers[world][level][i][3]) {
+			if (playerX > triggers[world][level][i][0] - PLAYER_WIDTH && playerX < triggers[world][level][i][0] + triggers[world][level][i][2] &&
+				playerY > triggers[world][level][i][1] - PLAYER_HEIGHT && playerY < triggers[world][level][i][1] + triggers[world][level][i][3]) {
 				// if type < 5 par exemple -> bonus
 				// Liste des bonus :
 				// 1 : Double jump
@@ -220,9 +237,18 @@ int main(int argc, char* argv[]) {
 			}
 		}
 
+		// Accélère ou décélère le joueur
+		if (leftPressed || rightPressed) {
+			if (playerSpeed < PLAYER_DEFAULT_SPEED) {
+				playerSpeed += PLAYER_ACCELERATION;
+			}
+		} else if (playerSpeed >= PLAYER_DECELERATION) {
+			playerSpeed -= PLAYER_DECELERATION;
+		}
+
 		double fallDistance = playerYVelocity;
 		double upDistance = playerYVelocity;
-		double playerWallDistance = PLAYER_DEFAULT_SPEED;
+		double playerWallDistance = playerSpeed;
 		playerIsGrounded = false;
 		for (int i = 0; i < walls[world][level].size(); i++) {
 			#pragma region GRAVITY
@@ -259,9 +285,9 @@ int main(int argc, char* argv[]) {
 				}
 
 				// Téléporte le joueur au plafond et stop son élan si on va monter plus haut que le plafond
-				if (fallDistance < 0 && fallDistance < upDistance) {
+				if (fallDistance < 0.0 && fallDistance < upDistance) {
 					fallDistance = upDistance;
-					playerYVelocity = 0;
+					playerYVelocity = 0.0;
 				}
 			}
 
@@ -275,12 +301,12 @@ int main(int argc, char* argv[]) {
 				double wallDistanceLeft = playerX - walls[world][level][i][2];
 				double wallDistanceRight = walls[world][level][i][0] - (playerX + PLAYER_WIDTH);
 
-				// Change les distances avec le murW
-				if (wallDistanceLeft >= 0 && wallDistanceLeft < playerWallDistance && leftPressed) {
+				// Change les distances avec le mur
+				if (wallDistanceLeft >= 0.0 && wallDistanceLeft < playerWallDistance && playerDirection == 1) {
 					playerWallDistance = wallDistanceLeft;
 				}
 
-				if (wallDistanceRight >= 0 && wallDistanceRight < playerWallDistance && rightPressed) {
+				if (wallDistanceRight >= 0.0 && wallDistanceRight < playerWallDistance && playerDirection == 2) {
 					playerWallDistance = wallDistanceRight;
 				}
 			}
@@ -288,13 +314,21 @@ int main(int argc, char* argv[]) {
 			#pragma endregion
 		}
 
-		// Déplace le joueur latéralement
-		if (leftPressed) {
-			playerX -= playerWallDistance;
+		if (playerIsGrounded) {
+			playerCanJumpTimeRemaining = TIME_PLAYER_CAN_JUMP_AFTER_LIVING_PLATEFORM;
+		} else {
+			playerCanJumpTimeRemaining--;
 		}
+
+		// Déplace le joueur latéralement
+		if (playerSpeed >= PLAYER_DECELERATION) {
+			if (playerDirection == 1 && playerX - playerWallDistance > 0.0) {
+				playerX -= playerWallDistance;
+			}
 		
-		if (rightPressed) {
-			playerX += playerWallDistance;
+			if (playerDirection == 2) {
+				playerX += playerWallDistance;
+			}
 		}
 
 		// Ajoute à la position Y du joueur sa vélocité
@@ -302,7 +336,7 @@ int main(int argc, char* argv[]) {
 
 		// change the player y velocity
 		if (playerIsGrounded) {
-			playerYVelocity = 0;
+			playerYVelocity = 0.0;
 		} else {
 			playerYVelocity += GRAVITY_FORCE;
 		}
@@ -319,13 +353,24 @@ int main(int argc, char* argv[]) {
 		#pragma region AFFICHAGE
 
 		// Joueur
-		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+		SDL_Surface* playerArea;
+
+		if (playerDirection == 1) {
+			playerArea = IMG_Load("assets/sprites/player/player-left.png");
+		} else {
+			playerArea = IMG_Load("assets/sprites/player/player-right.png");
+		}
+
+		SDL_Texture* playerTexture = SDL_CreateTextureFromSurface(renderer, playerArea);
+		SDL_FreeSurface(playerArea);
+
 		SDL_Rect player;
 		player.x = static_cast<int>(playerX - cameraX);
 		player.y = static_cast<int>(playerY - cameraY);
 		player.w = static_cast<int>(PLAYER_WIDTH);
 		player.h = static_cast<int>(PLAYER_HEIGHT);
-		SDL_RenderFillRect(renderer, &player);
+
+		SDL_RenderCopy(renderer, playerTexture, NULL, &player);
 
 		// Dessine les trigger
 		SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
