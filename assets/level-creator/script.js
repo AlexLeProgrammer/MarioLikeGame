@@ -92,22 +92,33 @@ function calculateResult() {
     let result = "";
 
     // Blocs
+    if (bigBlocs.length > 0) {
+        result += "--- Walls\n";
+    }
     for (let i = 0; i < bigBlocs.length; i++) {
-        result += "{" + bigBlocs[i][0] + ", " + bigBlocs[i][1] + ", " +
-        (bigBlocs[i][0] + bigBlocs[i][2]) + ", " + (bigBlocs[i][1] + bigBlocs[i][3])
+        result += "{" + bigBlocs[i][0] + ", " + bigBlocs[i][1] + ", " + (bigBlocs[i][0] + bigBlocs[i][2]) + ", " + (bigBlocs[i][1] + bigBlocs[i][3])
         + "}" + (i < bigBlocs.length - 1 ? "," : "") + "\n";
     }
 
     // Fin de niveau
     if (bigEnds.length > 0) {
-        result += "---\n";
+        result += "--- Ends\n";
     }
 
     for (let i = 0; i < bigEnds.length; i++) {
         result += "{" + bigEnds[i][0] + ", " + bigEnds[i][1] + ", " +
         bigEnds[i][2] + ", " + bigEnds[i][3] + ", 100}" + (i < bigEnds.length - 1 ? "," : "") + "\n";
     }
+
+    // Tiles
+    if (map.tiles.length > 0) {
+        result += "--- Tiles\n";
+    }
     
+    for (let i = 0; i < map.tiles.length; i++) {
+        result += "{" + map.tiles[i][0] + ", " + map.tiles[i][1] + ", " + map.tiles[i][2] + "}" + (i < map.tiles.length - 1 ? "," : "") + "\n";
+    }
+
     return result;
 }
 
@@ -196,7 +207,7 @@ function loop() {
             bigBlocs.push(bigLineBlocs[i]);
         }
     }
-    // creer les gros blocs
+    // Créer les gros blocs
     for (let i = 0; i < bigBlocs.length; i++) {
         let endFound = false;
         let lenght = 0;
