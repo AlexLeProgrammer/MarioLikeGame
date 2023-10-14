@@ -17,6 +17,9 @@ const int FRAME_DELAY = 1000 / FPS;
 // Gravité
 const double GRAVITY_FORCE = 0.5;
 
+// Tiles
+const std::string TEXTURES_LIST[1] = {"path"};
+
 // Joueur
 const double PLAYER_WIDTH = 50.0;
 const double PLAYER_HEIGHT = 50.0 / 13.0 * 18.0;

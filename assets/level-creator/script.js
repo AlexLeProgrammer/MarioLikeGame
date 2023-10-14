@@ -6,9 +6,11 @@ let context = canvas.getContext('2d');
 
 const BLOCKSIZE = 25;
 
+const TEXTURE_LIST = ["red", "green", "blue"];
+
 //#endregion
 
-//#region VAR   IABLES
+//#region VARIABLES
 let mouseScreenPosX = 0;
 let mouseScreenPosY = 0;
 
@@ -20,7 +22,8 @@ let offsetY = 0;
 
 let map = {
     blocks: [],
-    ends: []
+    ends: [],
+    tiles: []
 };
 
 let blockType = 0; // 0 : mur, 1 : arrivé
@@ -41,21 +44,36 @@ let debugMode = false;
 
 let mapName = "map0";
 
+let mode = false // false : edit, true : paint
+
+let selectedTexture = 0;
+
 //#endregion
 
 //#region FONCTIONS
 function isABloc(x, y) {
-    // Bloc
-    for (let i = 0; i < map.blocks.length; i++) {
-        if (map.blocks[i][0] === x && map.blocks[i][1] === y) {
-            return true;
+    if (mode) {
+        // Mode peinture
+        // Tiles
+        for (let i = 0; i < map.tiles.length; i++) {
+            if (map.tiles[i][0] === x && map.tiles[i][1] === y) {
+                return true;
+            }
         }
-    }
+    } else {
+        // Mode édition
+        // Bloc
+        for (let i = 0; i < map.blocks.length; i++) {
+            if (map.blocks[i][0] === x && map.blocks[i][1] === y) {
+                return true;
+            }
+        }
 
-    // Fin de niveau
-    for (let i = 0; i < map.ends.length; i++) {
-        if (map.ends[i][0] === x && map.ends[i][1] === y) {
-            return true;
+        // Fin de niveau
+        for (let i = 0; i < map.ends.length; i++) {
+            if (map.ends[i][0] === x && map.ends[i][1] === y) {
+                return true;
+            }
         }
     }
 
@@ -89,8 +107,6 @@ function calculateResult() {
         result += "{" + bigEnds[i][0] + ", " + bigEnds[i][1] + ", " +
         bigEnds[i][2] + ", " + bigEnds[i][3] + ", 100}" + (i < bigEnds.length - 1 ? "," : "") + "\n";
     }
-
-    result = result.replaceAll(" - 0", "");
     
     return result;
 }
@@ -100,9 +116,21 @@ function switchDebugMode() {
     document.getElementById("debug-mode").innerHTML = "Debug mode : " + (debugMode ? "on" : "off");
 }
 
+function switchMode() {
+    mode = !mode;
+    if (mode) {
+        document.querySelector("#edit").style.display = "inline";
+        document.querySelector("#paint").style.display = "none";
+    } else {
+        document.querySelector("#edit").style.display = "none";
+        document.querySelector("#paint").style.display = "inline";
+    }
+}
+
 function deleteLevel() {
     map.blocks = [];
     map.ends = [];
+    map.tiles = [];
 }
 
 function loadMap(name) {
@@ -127,18 +155,19 @@ function importMap(mapString) {
 loadMap(mapName);
 
 function loop() {
+    // Adapte le canvas
     canvas.width = window.innerWidth - 1;
     canvas.height = window.innerHeight - 1;
     
-    // arrondi l'emplacement de la souris sur la grille
+    // Arrondi l'emplacement de la souris sur la grille
     blockX = parseInt(mouseScreenPosX / BLOCKSIZE) * BLOCKSIZE;
     blockY = parseInt(mouseScreenPosY / BLOCKSIZE) * BLOCKSIZE;
 
-    //#region MENU
+    // Menu
     document.getElementById("menu-background").style.display = menuOpened ? "block" : "none";
-    //#endregion
     
     //#region CALCULER LES GROS BLOCS MUR
+
     bigBlocs = [];
     bigLineBlocs = [];
     // creer les lignes
@@ -184,6 +213,7 @@ function loop() {
         }
         bigBlocs[i][3] = BLOCKSIZE * lenght;
     }
+
     //#endregion
 
     //#region CALCULER LES GROS BLOCS FIN DE NIVEAU
@@ -235,47 +265,76 @@ function loop() {
     //#endregion
 
     //#region AFFICHAGE
+
     // grid
-    context.fillStyle = "#133F8E";
-    for (let x = 0; x < canvas.width; x+=BLOCKSIZE) {
+    if (mode) {
+        document.querySelector("canvas").style.backgroundColor = "black";
+        context.fillStyle = "white";
+    } else {
+        document.querySelector("canvas").style.backgroundColor = "#265BB9";
+        context.fillStyle = "#133F8E";
+    }
+
+    for (let x = 0; x < canvas.width; x += BLOCKSIZE) {
         context.fillRect(x, 0, 1, canvas.height);
     }
-    for (let y = 0; y < canvas.height; y+=BLOCKSIZE) {
+    for (let y = 0; y < canvas.height; y += BLOCKSIZE) {
         context.fillRect(0, y, canvas.width, 1);
     }
 
     // x0 line
     context.fillStyle = "red";
-    context.fillRect(offsetX * BLOCKSIZE, 0, 1, canvas.height);
+    context.fillRect(offsetX * BLOCKSIZE, 0, 2, canvas.height);
 
     // y0 line
     context.fillStyle = "yellow";
-    context.fillRect(0, offsetY, canvas.width, 1);
-
-    // black square
-    if (blockType === 0) {
-        context.strokeStyle = "black";
-    } else {
-        context.strokeStyle = "white";
-    }
-
-    context.lineWidth = 2;
-    context.strokeRect(blockX, blockY, BLOCKSIZE, BLOCKSIZE);
-
+    context.fillRect(0, offsetY, canvas.width, 2);
+    
     // Dessine les blocs
-    context.fillStyle = "black";
     for (let i = 0; i < map.blocks.length; i++) {
-        context.fillRect(map.blocks[i][0] + offsetX * BLOCKSIZE, map.blocks[i][1] + offsetY, BLOCKSIZE, BLOCKSIZE);
+        if (mode) {
+            context.strokeStyle = "red";
+            context.lineWidth = 2;
+            context.strokeRect(map.blocks[i][0] + offsetX * BLOCKSIZE, map.blocks[i][1] + offsetY, BLOCKSIZE, BLOCKSIZE);
+        } else {
+            context.fillStyle = "black";
+            context.fillRect(map.blocks[i][0] + offsetX * BLOCKSIZE, map.blocks[i][1] + offsetY, BLOCKSIZE, BLOCKSIZE);
+        }
     }
-
+    
     // Dessine les fins de niveau
     context.fillStyle = "white";
     for (let i = 0; i < map.ends.length; i++) {
         context.fillRect(map.ends[i][0] + offsetX * BLOCKSIZE, map.ends[i][1] + offsetY, BLOCKSIZE, BLOCKSIZE);
     }
 
+    // Dessine les tiles
+    if (mode) {
+        for (let i = 0; i < map.tiles.length; i++) {
+            context.fillStyle = TEXTURE_LIST[map.tiles[i][2]];
+            context.fillRect(map.tiles[i][0] + offsetX * BLOCKSIZE, map.tiles[i][1] + offsetY, BLOCKSIZE, BLOCKSIZE);
+        }
+    }
+    
+    // Dessine la case sélectionnée
+    if (mode) {
+        // Mode peinture
+        context.fillStyle = TEXTURE_LIST[selectedTexture];
+        context.fillRect(blockX, blockY, BLOCKSIZE, BLOCKSIZE);
+    } else {
+        // Mode édition
+        if (blockType === 0) {
+            context.strokeStyle = "black";
+        } else {
+            context.strokeStyle = "white";
+        }
+        
+        context.lineWidth = 2;
+        context.strokeRect(blockX, blockY, BLOCKSIZE, BLOCKSIZE);
+    }
+
     // big blocs
-    if (debugMode) {
+    if (debugMode && !mode) {
         context.fillStyle = "red";
         // Blocs
         for (let i = 0; i < bigBlocs.length; i++) {
@@ -288,38 +347,58 @@ function loop() {
         }
     }
 
-    // ground
-    context.fillStyle = "#122c5a";
-    context.fillRect(0, BLOCKSIZE * 25, canvas.width, canvas.height - BLOCKSIZE * 25);
     //#endregion
 
     //#region POSER/CASSER
-    //detecte si on clique
-    if (isPlacing && !isABloc(blockX-offsetX*BLOCKSIZE, blockY-offsetY, true)) {
-        if (blockType === 0) {
-            // Bloc
-            map.blocks.push([blockX-offsetX*BLOCKSIZE, blockY-offsetY]);
-        } else {
-            // Fin de niveau
-            map.ends.push([blockX-offsetX*BLOCKSIZE, blockY-offsetY]);
-        }
-    }
-    //detecte si on clique droit
-    if (isBreaking) {
-        // Bloc
-        for (let i = 0; i < map.blocks.length; i++) {
-            if (map.blocks[i][0] + offsetX * BLOCKSIZE === blockX && map.blocks[i][1] + offsetY === blockY) {
-                map.blocks.splice(i, 1);
-            }
-        }
 
-        // Fin de niveau
-        for (let i = 0; i < map.ends.length; i++) {
-            if (map.ends[i][0] + offsetX * BLOCKSIZE === blockX && map.ends[i][1] + offsetY === blockY) {
-                map.ends.splice(i, 1);
+    // Placer
+    if (isPlacing && !isABloc(blockX-offsetX*BLOCKSIZE, blockY-offsetY, true)) {
+        if (mode) {
+            // Mode peinture
+            map.tiles.push([blockX-offsetX*BLOCKSIZE, blockY-offsetY, selectedTexture]);
+        } else {
+            // Mode édition
+            if (blockType === 0) {
+                // Bloc
+                map.blocks.push([blockX-offsetX*BLOCKSIZE, blockY-offsetY]);
+            } else {
+                // Fin de niveau
+                map.ends.push([blockX-offsetX*BLOCKSIZE, blockY-offsetY]);
             }
         }
     }
+
+    // Casser
+    if (isBreaking) {
+        if (mode) {
+            // Mode peinture
+            // Tiles
+            for (let i = 0; i < map.tiles.length; i++) {
+                if (map.tiles[i][0] + offsetX * BLOCKSIZE === blockX && map.tiles[i][1] + offsetY === blockY) {
+                    map.tiles.splice(i, 1);
+                    break;
+                }
+            }
+        } else {
+            // Mode édition
+            // Bloc
+            for (let i = 0; i < map.blocks.length; i++) {
+                if (map.blocks[i][0] + offsetX * BLOCKSIZE === blockX && map.blocks[i][1] + offsetY === blockY) {
+                    map.blocks.splice(i, 1);
+                    break;
+                }
+            }
+
+            // Fin de niveau
+            for (let i = 0; i < map.ends.length; i++) {
+                if (map.ends[i][0] + offsetX * BLOCKSIZE === blockX && map.ends[i][1] + offsetY === blockY) {
+                    map.ends.splice(i, 1);
+                    break;
+                }
+            }
+        }
+    }
+
     //#endregion
 
     requestAnimationFrame(loop);
@@ -329,12 +408,15 @@ function loop() {
         localStorage.removeItem(mapName);
     }
 }
+
 //#region INPUTS
+
 //position de la souris
 canvas.addEventListener("mousemove", (e) => {
     mouseScreenPosX = e.clientX;
     mouseScreenPosY = e.clientY;
 });
+
 //molette
 canvas.addEventListener("wheel", (e) => {
     if (e.deltaY < 0) {
@@ -344,7 +426,8 @@ canvas.addEventListener("wheel", (e) => {
         offsetX--;
     }
 });
-document.addEventListener('mousedown', function(e) {
+
+canvas.addEventListener('mousedown', function(e) {
     //detecte si on clique
     if (e.which === 1 && !menuOpened) {
         isPlacing = true;
@@ -354,13 +437,15 @@ document.addEventListener('mousedown', function(e) {
         isBreaking = true;
     }
 });
-document.addEventListener('mouseup', function(e) {
+
+canvas.addEventListener('mouseup', function(e) {
     //detecte si on clique droit
     if (e.which === 1 || e.which === 3) {
         isPlacing = false;
         isBreaking = false;
     }
 });
+
 document.addEventListener('keydown', function(e) {
     // Ouvre le menu
     if (e.which === 27) {
@@ -368,7 +453,7 @@ document.addEventListener('keydown', function(e) {
     }
 
     // Change de type de bloc
-    if (e.which === 32) {
+    if (e.which === 32 && !mode) {
         if (blockType === 0) {
             blockType = 1;
         } else {
@@ -385,8 +470,27 @@ document.addEventListener('keydown', function(e) {
     if (e.which === 109) {
         offsetY -= BLOCKSIZE;
     }
+
+    // Flèche droite
+    if (mode && e.which === 39) {
+        selectedTexture++;
+
+        if (selectedTexture === TEXTURE_LIST.length) {
+            selectedTexture = 0;
+        }
+    }
+
+    // Flèche gauche
+    if (mode && e.which === 37) {
+        selectedTexture--;
+        
+        if (selectedTexture === -1) {
+            selectedTexture = TEXTURE_LIST.length - 1;
+        }
+    }
 });
+
 //#endregion
 
-// demarre le jeu
+// Démarre le jeu
 requestAnimationFrame(loop);
