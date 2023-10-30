@@ -18,7 +18,8 @@ const int FRAME_DELAY = 1000 / FPS;
 const double GRAVITY_FORCE = 0.5;
 
 // Tiles
-const std::string TEXTURES_LIST[1] = {"path"};
+const int TILES_SIZE = 25;
+const char* TEXTURES_LIST[1] = {"assets/sprites/tiles/stone/test.png"};
 
 // Joueur
 const double PLAYER_WIDTH = 50.0;
@@ -76,38 +77,12 @@ bool rightPressed = false;
 bool haveSpaceReleased = false;
 
 // Murs [world][level][wall][wall properties]
-std::vector<std::vector<std::vector<std::vector<double>>>> walls {
+std::vector<std::vector<std::vector<std::vector<double>>>> walls = {
 	{
 		{
 			// Niveau 1
 			/*{x1, y1, x2, y2}*/
-			{0, 250, 75, 300},
-			{225, 250, 275, 275},
-			{475, 325, 525, 350},
-			{625, 325, 1150, 350},
-			{850, 275, 900, 325},
-			{1625, 200, 1925, 250},
-			{1025, 200, 1300, 225},
-			{1450, 175, 1500, 200},
-			{1875, 0, 1925, 150},
-			{1800, 150, 1925, 200},
-			{1625, 50, 1675, 100},
-			{1375, 450, 1450, 500},
-			{2125, 0, 2450, 50},
-			{2525, 0, 2925, 50},
-			{2625, -25, 2825, 0},
-			{3125, 50, 3150, 75},
-			{3150, 75, 3175, 100},
-			{3175, 100, 3200, 125},
-			{3200, 125, 3225, 150},
-			{3225, 150, 3250, 175},
-			{3250, 175, 3275, 200},
-			{3275, 200, 3300, 225},
-			{3300, 225, 3325, 250},
-			{3425, 250, 3550, 275},
-			{3750, 250, 4050, 300},
-			{3875, 200, 3925, 250},
-			{4000, 200, 4050, 250}
+			{0.0, 150.0, 375.0, 200.0}
 		},
 		{
 			// Niveau 2
@@ -122,16 +97,46 @@ std::vector<std::vector<std::vector<std::vector<double>>>> walls {
 	}
 };
 
-// Triggers [world][level][wall][trigger properties]
+// Triggers [world][level][trigger][trigger properties]
 std::vector<std::vector<std::vector<std::vector<double>>>> triggers = {
 	{
 		{
 			/*{x, y, w, h, type}*/
-			{4000, 150, 50, 50, 100} // Fin du niveau
+			{450.0, 150.0, 50.0, 50.0, 100.0} // Fin du niveau
 		},
 		{
 			{4000, 150, 50, 50, 100} // Fin du niveau
 		}
+	}
+};
+
+// Tiles [world][level][tile][tile properties]
+std::vector<std::vector<std::vector<std::vector<double>>>> tiles = {
+	{
+		{
+			/*{x, y, size, texture index}*/
+			{325.0, 175.0, 0.0},
+			{300.0, 175.0, 0.0},
+			{300.0, 150.0, 0.0},
+			{325.0, 150.0, 0.0},
+			{275.0, 150.0, 0.0},
+			{275.0, 175.0, 0.0},
+			{250.0, 175.0, 0.0},
+			{250.0, 150.0, 0.0},
+			{225.0, 175.0, 0.0},
+			{225.0, 150.0, 0.0},
+			{200.0, 175.0, 0.0},
+			{200.0, 150.0, 0.0},
+			{175.0, 175.0, 0.0},
+			{175.0, 150.0, 0.0},
+			{150.0, 175.0, 0.0},
+			{125.0, 175.0, 0.0},
+			{125.0, 150.0, 0.0},
+			{150.0, 150.0, 0.0},
+			{375.0, 250.0, 0.0},
+			{400.0, 250.0, 0.0},
+			{425.0, 250.0, 0.0}
+		},
 	}
 };
 
@@ -355,6 +360,44 @@ int main(int argc, char* argv[]) {
 
 		#pragma region AFFICHAGE
 
+		// Dessine les murs
+		SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+		for (int i = 0; i < walls[world][level].size(); i++) {
+			SDL_Rect wall;
+			wall.x = static_cast<int>(walls[world][level][i][0] - cameraX);
+			wall.y = static_cast<int>(walls[world][level][i][1] - cameraY);
+			wall.w = static_cast<int>(walls[world][level][i][2] - walls[world][level][i][0]);
+			wall.h = static_cast<int>(walls[world][level][i][3] - walls[world][level][i][1]);
+			SDL_RenderFillRect(renderer, &wall);
+		}
+
+		// Dessine les trigger
+		SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+		for (int i = 0; i < triggers[world][level].size(); i++) {
+			SDL_Rect Actualtrigger;
+			Actualtrigger.x = static_cast<int>(triggers[world][level][i][0] - cameraX);
+			Actualtrigger.y = static_cast<int>(triggers[world][level][i][1] - cameraY);
+			Actualtrigger.w = static_cast<int>(triggers[world][level][i][2]);
+			Actualtrigger.h = static_cast<int>(triggers[world][level][i][3]);
+			SDL_RenderDrawRect(renderer, &Actualtrigger);
+		}
+
+		// Dessine les tiles
+		for (int i = 0; i < tiles[world][level].size(); i++) {
+			SDL_Surface* tileArea = IMG_Load(TEXTURES_LIST[static_cast<int>(tiles[world][level][i][2])]);
+
+			SDL_Texture* tileTexture = SDL_CreateTextureFromSurface(renderer, tileArea);
+			SDL_FreeSurface(tileArea);
+		
+			SDL_Rect tile;
+			tile.x = static_cast<int>(tiles[world][level][i][0] - cameraX);
+			tile.y = static_cast<int>(tiles[world][level][i][1] - cameraY);
+			tile.w = TILES_SIZE;
+			tile.h = TILES_SIZE;
+
+			SDL_RenderCopy(renderer, tileTexture, NULL, &tile);
+		}
+
 		// Joueur
 		SDL_Surface* playerArea;
 
@@ -374,28 +417,6 @@ int main(int argc, char* argv[]) {
 		player.h = static_cast<int>(PLAYER_HEIGHT);
 
 		SDL_RenderCopy(renderer, playerTexture, NULL, &player);
-
-		// Dessine les trigger
-		SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
-		for (int i = 0; i < triggers[world][level].size(); i++) {
-			SDL_Rect Actualtrigger;
-			Actualtrigger.x = static_cast<int>(triggers[world][level][i][0] - cameraX);
-			Actualtrigger.y = static_cast<int>(triggers[world][level][i][1] - cameraY);
-			Actualtrigger.w = static_cast<int>(triggers[world][level][i][2]);
-			Actualtrigger.h = static_cast<int>(triggers[world][level][i][3]);
-			SDL_RenderDrawRect(renderer, &Actualtrigger);
-		}
-
-		// Dessine les murs
-		SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-		for (int i = 0; i < walls[world][level].size(); i++) {
-			SDL_Rect wall;
-			wall.x = static_cast<int>(walls[world][level][i][0] - cameraX);
-			wall.y = static_cast<int>(walls[world][level][i][1] - cameraY);
-			wall.w = static_cast<int>(walls[world][level][i][2] - walls[world][level][i][0]);
-			wall.h = static_cast<int>(walls[world][level][i][3] - walls[world][level][i][1]);
-			SDL_RenderFillRect(renderer, &wall);
-		}
 
 		// Met à jour la fenêtre
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);

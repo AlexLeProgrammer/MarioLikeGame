@@ -96,8 +96,8 @@ function calculateResult() {
         result += "--- Walls\n";
     }
     for (let i = 0; i < bigBlocs.length; i++) {
-        result += "{" + bigBlocs[i][0] + ", " + bigBlocs[i][1] + ", " + (bigBlocs[i][0] + bigBlocs[i][2]) + ", " + (bigBlocs[i][1] + bigBlocs[i][3])
-        + "}" + (i < bigBlocs.length - 1 ? "," : "") + "\n";
+        result += "{" + bigBlocs[i][0] + ".0, " + bigBlocs[i][1] + ".0, " + (bigBlocs[i][0] + bigBlocs[i][2]) + ".0, " + (bigBlocs[i][1] + bigBlocs[i][3])
+        + ".0}" + (i < bigBlocs.length - 1 ? "," : "") + "\n";
     }
 
     // Fin de niveau
@@ -106,8 +106,8 @@ function calculateResult() {
     }
 
     for (let i = 0; i < bigEnds.length; i++) {
-        result += "{" + bigEnds[i][0] + ", " + bigEnds[i][1] + ", " +
-        bigEnds[i][2] + ", " + bigEnds[i][3] + ", 100}" + (i < bigEnds.length - 1 ? "," : "") + "\n";
+        result += "{" + bigEnds[i][0] + ".0, " + bigEnds[i][1] + ".0, " +
+        bigEnds[i][2] + ".0, " + bigEnds[i][3] + ".0, 100.0}" + (i < bigEnds.length - 1 ? "," : "") + "\n";
     }
 
     // Tiles
@@ -116,7 +116,7 @@ function calculateResult() {
     }
     
     for (let i = 0; i < map.tiles.length; i++) {
-        result += "{" + map.tiles[i][0] + ", " + map.tiles[i][1] + ", " + map.tiles[i][2] + "}" + (i < map.tiles.length - 1 ? "," : "") + "\n";
+        result += "{" + map.tiles[i][0] + ".0, " + map.tiles[i][1] + ".0, " + map.tiles[i][2] + ".0}" + (i < map.tiles.length - 1 ? "," : "") + "\n";
     }
 
     return result;
